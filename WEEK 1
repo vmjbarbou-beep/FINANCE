@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture 1 - Advanced Flashcards</title>
+    <!-- Utilisation de Tailwind CSS pour le style -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Styles personnalisés pour l'effet 3D de la carte */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        /* Style de la barre de défilement pour les longs textes */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4 font-sans text-slate-800">
+
+    <div class="max-w-3xl w-full">
+        <!-- En-tête -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-indigo-700 mb-2">Lecture 1 : Hard Mode Flashcards</h1>
+            <p class="text-slate-500">Accounting Quality, Sloan, Dechow & Dichev, Ball & Brown. Cliquez sur la carte pour la retourner.</p>
+            <div class="mt-4 inline-block bg-white px-4 py-2 rounded-full shadow-sm text-sm font-semibold text-indigo-600">
+                Carte <span id="current-index">1</span> sur 30
+            </div>
+        </div>
+
+        <!-- Conteneur de la Carte -->
+        <div class="relative w-full h-80 perspective-1000 cursor-pointer group" onclick="flipCard()">
+            <div id="card-inner" class="w-full h-full relative transform-style-3d shadow-xl rounded-2xl">
+                
+                <!-- Recto (Question) -->
+                <div class="absolute w-full h-full bg-white rounded-2xl border-t-4 border-indigo-500 p-8 flex flex-col justify-center items-center backface-hidden text-center">
+                    <span class="absolute top-4 left-4 text-xs font-bold uppercase tracking-wider text-indigo-400" id="card-category">Category</span>
+                    <h2 id="question-text" class="text-xl md:text-2xl font-bold text-slate-700 leading-snug">
+                        <!-- La question sera injectée ici par JS -->
+                    </h2>
+                    <p class="absolute bottom-4 text-sm text-slate-400 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                        Cliquez pour voir la réponse
+                    </p>
+                </div>
+
+                <!-- Verso (Réponse) -->
+                <div class="absolute w-full h-full bg-indigo-600 rounded-2xl border-t-4 border-indigo-300 p-8 flex flex-col justify-center items-center backface-hidden rotate-y-180 text-center custom-scrollbar overflow-y-auto">
+                    <h2 class="text-lg md:text-xl font-medium text-white leading-relaxed" id="answer-text">
+                        <!-- La réponse sera injectée ici par JS -->
+                    </h2>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Contrôles -->
+        <div class="flex justify-between items-center mt-8 gap-4">
+            <button onclick="prevCard()" class="flex-1 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 px-6 rounded-xl shadow-sm transition border border-slate-200">
+                &larr; Précédente
+            </button>
+            <button onclick="shuffleCards()" class="p-3 bg-white hover:bg-slate-50 text-slate-600 rounded-xl shadow-sm transition border border-slate-200" title="Mélanger">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+            </button>
+            <button onclick="nextCard()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-xl shadow-sm transition">
+                Suivante &rarr;
+            </button>
+        </div>
+        
+        <!-- Barre de progression -->
+        <div class="w-full bg-slate-200 rounded-full h-2.5 mt-8">
+          <div id="progress-bar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" style="width: 3.33%"></div>
+        </div>
+    </div>
+
+    <script>
+        // Données des 30 questions - Lecture 1
+        const flashcardsData = [
+            { cat: "Ball & Brown (1968)", q: "According to Ball & Brown (1968), why does the majority of the CAR adjustment occur BEFORE the annual earnings announcement?", a: "Because the market anticipates the earnings information using more timely sources (interim reports, macro news, analyst forecasts) before the actual report is released." },
+            { cat: "Ball & Brown (1968)", q: "What defines 'Good News' vs 'Bad News' firms in the Ball & Brown methodology?", a: "'Good News' firms are those whose actual earnings exceed the market's expectation (forecast), not necessarily just firms that report a net profit." },
+            { cat: "Ball & Brown (1968)", q: "What is the 'Post-Earnings Announcement Drift' (PEAD)?", a: "It is the market anomaly where stock prices continue to drift in the direction of the earnings surprise for several months AFTER the announcement, suggesting a delayed or incomplete initial market reaction." },
+            { cat: "Sloan (1996)", q: "How does Sloan (1996) explain the 'Accrual Anomaly'?", a: "Investors 'fixate' on bottom-line earnings and fail to distinguish between its components. They overestimate the persistence of accruals and underestimate the persistence of cash flows." },
+            { cat: "Sloan (1996)", q: "Which component of earnings has inherently higher persistence: Accruals or Cash Flows (CFO)?", a: "Cash Flows. Accruals involve estimates, subjectivity, and reversals that make them less likely to persist into future periods compared to actual cash realized." },
+            { cat: "Sloan (1996)", q: "What trading strategy does Sloan (1996) suggest to exploit the accrual anomaly?", a: "Take a long position in firms with low accruals (high CFO) and a short position in firms with high accruals (low CFO), exploiting the market's subsequent correction." },
+            { cat: "Sloan (1996)", q: "Is the Sloan anomaly empirically stronger in small firms or large 'Blue Chip' firms, and why?", a: "Stronger in small firms. They have lower analyst coverage and higher information asymmetry, allowing the mispricing of complex accounting accruals to persist longer." },
+            { cat: "Dechow & Dichev (2002)", q: "In the Dechow & Dichev model, how is 'Accrual Quality' specifically defined?", a: "It is defined by the extent to which working capital accruals map cleanly into past, present, and future cash flow realizations." },
+            { cat: "Dechow & Dichev (2002)", q: "In the regression formula (ΔWC = β1*CFO_t-1 + β2*CFO_t + β3*CFO_t+1 + ε), what does the residual (ε) represent?", a: "It represents the estimation error in accruals—the portion of the accrual that cannot be explained by actual, realized cash flows." },
+            { cat: "Dechow & Dichev (2002)", q: "What does a high standard deviation of the residual [σ(ε)] imply for a firm?", a: "It indicates low accrual quality. The firm has high estimation errors (whether intentional or natural), which directly leads to lower future earnings persistence." },
+            { cat: "Dechow & Dichev (2002)", q: "In the Dechow & Dichev model, what does the coefficient β3 (for CFO_t+1) represent?", a: "It represents current period accruals that are recognized in anticipation of future cash flow realizations (e.g., booking an account receivable today for cash collected next year)." },
+            { cat: "Dechow & Dichev (2002)", q: "How does the length of a firm's 'Operating Cycle' affect its accrual quality?", a: "A longer operating cycle decreases accrual quality because it requires longer-term estimates, naturally increasing the likelihood and magnitude of estimation errors." },
+            { cat: "Beneish M-Score", q: "What is the primary purpose of the Beneish M-Score model?", a: "To calculate the probability that a firm is engaging in intentional earnings manipulation (fraudulent earnings management)." },
+            { cat: "Beneish M-Score", q: "Why are the financial indices in the Beneish model 'winsorized' before calculating the score?", a: "To reduce the statistical influence of extreme data outliers (e.g., capping at the 1st and 99th percentiles) that could severely distort the regression results." },
+            { cat: "Beneish M-Score", q: "What might a high 'Days Sales in Receivables Index' (DSRI) signal in the Beneish model?", a: "It may signal artificial revenue inflation ('channel stuffing') or a dangerous loosening of credit policies to artificially boost current period sales." },
+            { cat: "Earnings Persistence", q: "Why are 'Income-Increasing' accruals considered strictly less persistent than 'Income-Decreasing' ones?", a: "Because income-increasing accruals often involve aggressive, optimistic managerial estimates that are highly likely to reverse or be written down in the future." },
+            { cat: "Forecasting (Monahan)", q: "What is the 'Clean Surplus Relation' required for the Residual Income model?", a: "Book Value(t) = Book Value(t-1) + Net Income(t) - Dividends(t). It assumes all changes in equity (except shareholder transactions) pass directly through the income statement." },
+            { cat: "Forecasting (Monahan)", q: "Give a common accounting example of an item that violates the 'Clean Surplus Relation'.", a: "Other Comprehensive Income (OCI) items, such as foreign currency translation adjustments or unrealized gains/losses on available-for-sale securities, bypass the income statement." },
+            { cat: "Valuation Fundamentals", q: "Why does the Abnormal Earnings model deduct a 'capital charge' (r × BV_t-1) from Net Income?", a: "To measure true economic profit. A firm must generate earnings that exceed the opportunity cost of the capital provided by its shareholders to actually create value." },
+            { cat: "Forecasting (Monahan)", q: "According to Monahan (2018), what is the primary goal of 'Fundamental Analysis'?", a: "To determine the 'Intrinsic Value' of a firm by forecasting its future payoffs based on a deep understanding of its operating cycle and the quality of its accounting data." },
+            { cat: "Accounting Theory", q: "What is the difference between 'Intentional' and 'Unintentional' estimation errors in accruals?", a: "Intentional errors equal earnings management (fraud/bias). Unintentional errors arise naturally from business complexity and uncertainty (e.g., unexpected macro shocks)." },
+            { cat: "Accounting Theory", q: "Define 'Matching Quality' in accounting.", a: "The degree to which accounting rules accurately match the expenses incurred in a period to the revenues they helped generate in that exact same period." },
+            { cat: "Accounting Theory", q: "If accruals introduce estimation errors, why do we use them instead of just cash flows?", a: "Accruals connect earnings and cash flows across time. They mitigate timing mismatches in cash receipts/payments to better reflect the underlying economic performance of the period." },
+            { cat: "Value Relevance", q: "In an 'Earnings Relevance' regression (Returns = β0 + β1*Earnings + ε), what does a low R² imply?", a: "It implies that current accounting earnings capture very little of the information that is actually moving the stock price in the market." },
+            { cat: "Accounting Distortions", q: "How does 'Conservative Accounting' (e.g., immediate expensing of R&D) impact FUTURE Abnormal Earnings calculations?", a: "It lowers current Book Value. Since the future capital charge (r × BV) will be smaller, it mathematically and artificially inflates future Abnormal Earnings." },
+            { cat: "Synthesis", q: "Contrast the 'Information Role' (Ball & Brown) with the 'Valuation Role' (Sloan) of earnings.", a: "The Information Role measures how markets *react* to the news at the announcement. The Valuation Role assesses the *intrinsic quality/persistence* of the earnings components for predicting the future." },
+            { cat: "Synthesis", q: "If a firm has high accruals but an exceptionally high R² in the Dechow & Dichev mapping model, what happens to the Sloan 'Accrual Anomaly'?", a: "The anomaly is significantly reduced. The high R² proves the accruals are high-quality and will successfully convert to cash, making them highly persistent." },
+            { cat: "Information Role", q: "If the market anticipates 85% of earnings news, what is the 'Confirmatory Role' of the annual report?", a: "The audited annual report anchors the market by providing definitive confirmation, without which 'soft' timely news (rumors, interim data) would eventually lose its credibility." },
+            { cat: "Forecasting Models", q: "In a forecasting model, why must an analyst decompose Net Income into Accruals and CFO instead of forecasting NI as a single unit?", a: "Because they have significantly different persistence parameters (γ). Using a single autoregressive model for Net Income overestimates future performance for high-accrual firms." },
+            { cat: "Empirical Tests", q: "What is the main dependent variable (Y) in a standard 'Earnings Persistence' test regression?", a: "Future Earnings (Earnings_t+1). The test regresses future earnings on current earnings components to see how much of today's performance systematically carries over." }
+        ];
+
+        let currentIndex = 0;
+        let isFlipped = false;
+        let currentDeck = [...flashcardsData]; // Copie pour pouvoir mélanger
+
+        // Éléments du DOM
+        const cardInner = document.getElementById('card-inner');
+        const questionText = document.getElementById('question-text');
+        const answerText = document.getElementById('answer-text');
+        const categoryText = document.getElementById('card-category');
+        const indexDisplay = document.getElementById('current-index');
+        const progressBar = document.getElementById('progress-bar');
+
+        // Initialisation
+        function loadCard(index) {
+            const card = currentDeck[index];
+            questionText.innerText = card.q;
+            answerText.innerText = card.a;
+            categoryText.innerText = card.cat;
+            indexDisplay.innerText = index + 1;
+            
+            // Mise à jour de la barre de progression
+            const progress = ((index + 1) / currentDeck.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // Retourner la carte
+        function flipCard() {
+            isFlipped = !isFlipped;
+            if (isFlipped) {
+                cardInner.classList.add('rotate-y-180');
+            } else {
+                cardInner.classList.remove('rotate-y-180');
+            }
+        }
+
+        // Carte suivante
+        function nextCard() {
+            if (isFlipped) {
+                flipCard();
+                // Attendre la fin de l'animation pour changer le texte
+                setTimeout(() => {
+                    currentIndex = (currentIndex + 1) % currentDeck.length;
+                    loadCard(currentIndex);
+                }, 300);
+            } else {
+                currentIndex = (currentIndex + 1) % currentDeck.length;
+                loadCard(currentIndex);
+            }
+        }
+
+        // Carte précédente
+        function prevCard() {
+            if (isFlipped) {
+                flipCard();
+                setTimeout(() => {
+                    currentIndex = (currentIndex - 1 + currentDeck.length) % currentDeck.length;
+                    loadCard(currentIndex);
+                }, 300);
+            } else {
+                currentIndex = (currentIndex - 1 + currentDeck.length) % currentDeck.length;
+                loadCard(currentIndex);
+            }
+        }
+
+        // Mélanger les cartes (Algorithme de Fisher-Yates)
+        function shuffleCards() {
+            for (let i = currentDeck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [currentDeck[i], currentDeck[j]] = [currentDeck[j], currentDeck[i]];
+            }
+            currentIndex = 0;
+            if (isFlipped) flipCard();
+            setTimeout(() => {
+                loadCard(currentIndex);
+            }, isFlipped ? 300 : 0);
+        }
+
+        // Charger la première carte au démarrage
+        loadCard(currentIndex);
+
+        // Support du clavier
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextCard();
+            if (e.key === 'ArrowLeft') prevCard();
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                flipCard();
+            }
+        });
+    </script>
+</body>
+</html>
